@@ -1,0 +1,175 @@
+import pygame as pg
+import sys
+
+TILE_SIZE = 64
+
+class Overlord:
+    def __init__(self):
+        self.white        = (255, 255, 255)
+        self.black        = (  0,   0,   0)
+        self.purple_dark  = (181, 181, 255)
+        self.purple_light = (230, 230, 255)
+        self.green        = (  0, 255,   0) 
+        self.blue         = (  0,   0, 255) 
+
+        pg.init() 
+        self.WINDOW_WIDTH = 1280
+        self.WINDOW_HEIGHT = 768
+        self.window = pg.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        pg.display.set_caption("Treasure Hunters - Lógica Funcional")
+        
+        pg.font.init()
+        self.font = pg.font.SysFont("Courier New", 50, bold=True)
+
+        self.clock = pg.time.Clock()
+
+        self.map = [[' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','1','3',' ','1','2','2'],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','1','2','3',' ','7','9',' ','4','5','5'],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','7','8','9',' ',' ',' ',' ','4','5','5'],
+                    [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','4','5','5'],
+                    ['2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','5','5','5']]
+
+        # Variáveis de Jogo
+        self.gravity = 1
+        
+        self.player_animation = 0
+        self.player_animation_frame = 0 
+        self.player_pos = [300, 600]
+        self.player_jump_force = -22
+        self.player_vertical_speed = 0
+        self.player_box_colider = [46, 54] 
+
+        self.last_click_status = (False, False, False)
+        
+    def mouse_has_clicked(self, input):
+        if self.last_click_status == input:
+            return (False, False, False)
+        else:
+            left_button = False
+            center_button = False
+            right_button = False
+            if self.last_click_status[0] == False and input[0] == True:
+                left_button = True
+            if self.last_click_status[1] == False and input[1] == True:
+                center_button = True
+            if self.last_click_status[2] == False and input[2] == True:
+                right_button = True
+            return (left_button, center_button, right_button)
+
+    def draw_window(self):
+        self.window.fill(self.purple_light)
+
+        for y in range(len(self.map)):
+            for x in range(len(self.map[0])):
+                if self.map[y][x] != ' ':
+                    pg.draw.rect(self.window, self.green, 
+                                 (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+        col_x = self.player_pos[0] + 40
+        col_y = self.player_pos[1] + 8
+        col_width = self.player_box_colider[0]
+        col_height = self.player_box_colider[1]
+
+        pg.draw.rect(self.window, self.blue, (col_x, col_y, col_width, col_height))
+
+    def player_collider(self):
+        pos_x = self.player_pos[0] + 40
+        pos_y = self.player_pos[1] + 8
+        
+        box = [[pos_x, pos_y],
+               [pos_x + self.player_box_colider[0], pos_y],
+               [pos_x, pos_y + self.player_box_colider[1]],
+               [pos_x + self.player_box_colider[0], pos_y + self.player_box_colider[1]]]
+        
+        for y in range(len(self.map)):
+            for x in range(len(self.map[0])):
+                if self.map[y][x] != ' ':
+                    for i in range(len(box)):
+                        if (x * TILE_SIZE <= box[i][0] and y * TILE_SIZE <= box[i][1] and 
+                            (x * TILE_SIZE) + TILE_SIZE >= box[i][0] and (y * TILE_SIZE) + TILE_SIZE >= box[i][1]):
+                            return True
+        return False
+
+    def player(self):
+        
+        self.player_vertical_speed += self.gravity
+        self.player_pos[1] += self.player_vertical_speed
+        
+        if self.player_collider():
+            self.player_pos[1] -= self.player_vertical_speed
+            self.player_vertical_speed = 0
+            
+        self.player_animation_frame += 1
+        if self.player_animation == 0 or self.player_animation == 1:
+            if self.player_animation_frame > 35:
+                self.player_animation_frame = 0
+        elif self.player_animation == 2 or self.player_animation == 3:
+            if self.player_animation_frame > 42:
+                self.player_animation_frame = 0
+
+    def move(self, array, key):
+        buttom_press = False
+
+        if array[pg.K_a] == True: 
+            self.player_pos[0] -= 5
+            if self.player_collider():
+                self.player_pos[0] += 5
+            else:
+                self.player_animation = 3
+                buttom_press = True
+        
+        if array[pg.K_d] == True: 
+            self.player_pos[0] += 5
+            if self.player_collider():
+                self.player_pos[0] -= 5
+            else:
+                self.player_animation = 2
+                buttom_press = True
+
+        if buttom_press == False and self.player_animation == 2:
+            self.player_animation = 0
+        elif buttom_press == False and self.player_animation == 3:
+            self.player_animation = 1
+
+        if key == 'space':
+            self.player_pos[1] += 1 
+            if self.player_collider():
+                self.player_vertical_speed = self.player_jump_force
+            self.player_pos[1] -= 1
+
+
+if __name__ == '__main__':
+    jogo = Overlord()
+
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                sys.exit()
+
+            if event.type == pg.KEYDOWN:
+                
+                jogo.move(pg.key.get_pressed(), pg.key.name(event.key))
+                
+                if pg.key.name(event.key) == 'escape':
+                    pg.quit()
+                    sys.exit()
+
+
+        mouse_input = pg.mouse.get_pressed()
+        jogo.move(pg.key.get_pressed(), '') 
+        
+        jogo.clock.tick(60) 
+        jogo.player() 
+
+        jogo.draw_window()
+        
+        jogo.last_click_status = mouse_input
+        pg.display.update()
